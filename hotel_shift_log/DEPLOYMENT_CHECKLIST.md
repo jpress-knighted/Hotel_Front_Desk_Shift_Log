@@ -106,7 +106,41 @@ git push -u origin main
    - Replace `YOUR_CONNECTION_NAME` with the connection name from Step 1
    - Click **Create**
 
-### Step 3: Deploy to Cloud Run (via Console - No Code!)
+### Step 3: Grant Secret Access to Service Account ⚠️ CRITICAL
+
+**Why this is needed**: Cloud Run uses a service account to run your application. By default, this service account does **NOT** have permission to read secrets from Secret Manager. You must grant this permission or deployment will fail.
+
+**Navigate to**: [IAM Console](https://console.cloud.google.com/iam-admin/iam)
+
+**Option A: Grant at Project Level (Recommended - Simpler)**
+
+1. Find the service account named **"Compute Engine default service account"**
+   - Email format: `[PROJECT_NUMBER]-compute@developer.gserviceaccount.com`
+   - Example: `143559442445-compute@developer.gserviceaccount.com`
+2. Click the **pencil icon** (Edit) next to it
+3. Click **"+ ADD ANOTHER ROLE"**
+4. Search for and select: **"Secret Manager Secret Accessor"**
+5. Click **SAVE**
+
+**Option B: Grant to Individual Secrets (More Secure)**
+
+For each secret (`nextauth-secret`, `smtp-password`, `database-url`):
+
+**Navigate to**: [Secret Manager](https://console.cloud.google.com/security/secret-manager)
+
+1. Click on the secret name
+2. Click the **PERMISSIONS** tab
+3. Click **"+ GRANT ACCESS"**
+4. In "New principals", enter: `[PROJECT_NUMBER]-compute@developer.gserviceaccount.com`
+5. In "Select a role", choose: **"Secret Manager Secret Accessor"**
+6. Click **SAVE**
+7. Repeat for all three secrets
+
+**⚠️ Without this step, deployment will fail with "Permission denied on secret" errors!**
+
+---
+
+### Step 4: Deploy to Cloud Run (via Console - No Code!)
 
 **Navigate to**: [Cloud Run Console](https://console.cloud.google.com/run)
 
@@ -151,7 +185,7 @@ git push -u origin main
    - Update `NEXTAUTH_URL` variable to the actual Cloud Run URL
    - Click **Deploy**
 
-### Step 4: Run Database Migrations (One-Time Setup)
+### Step 5: Run Database Migrations (One-Time Setup)
 
 **Option A: Via Cloud Shell (Easiest)**
 
@@ -186,7 +220,7 @@ git push -u origin main
 
 Create a one-time job that runs migrations, then use Cloud Run for your app.
 
-### Step 5: Update Deployment URL
+### Step 6: Update Deployment URL
 
 After first deployment, update this variable in Cloud Run:
 - `NEXTAUTH_URL` → Your actual Cloud Run URL
@@ -218,7 +252,7 @@ After first deployment, update this variable in Cloud Run:
 
 ---
 
-### Step 6: Configure Email Recipients
+### Step 7: Configure Email Recipients
 1. Log into the deployed application as admin
 2. Go to **Users** page
 3. For each manager who should receive high-priority alerts:
@@ -227,7 +261,7 @@ After first deployment, update this variable in Cloud Run:
    - Ensure email address is filled in
    - Click **Save**
 
-### Step 7: Set Up Custom Domain (Optional - via Console)
+### Step 8: Set Up Custom Domain (Optional - via Console)
 
 **Navigate to**: Your Cloud Run service → **Manage Custom Domains**
 
@@ -239,7 +273,7 @@ After first deployment, update this variable in Cloud Run:
    - Wait for verification (can take up to 24 hours)
 5. Cloud Run will automatically provision SSL certificate
 
-### Step 8: Enable Automatic Backups (Already Configured!)
+### Step 9: Enable Automatic Backups (Already Configured!)
 
 **Cloud SQL automatically backs up your database**:
 - Navigate to your Cloud SQL instance → **Backups** tab

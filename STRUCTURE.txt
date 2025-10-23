@@ -1,0 +1,86 @@
+
+REPOSITORY STRUCTURE
+====================
+
+This is the correct structure for your GitHub repository.
+
+hotel_shift_log/                    Repository root (your GitHub repo)
+├── nextjs_space/                   Next.js application directory
+│   ├── app/                        App router pages and API routes
+│   ├── components/                 React components
+│   ├── hooks/                      Custom React hooks
+│   ├── lib/                        Utilities and configurations
+│   ├── prisma/                     Database schema and migrations
+│   ├── scripts/                    Maintenance scripts
+│   ├── types/                      TypeScript type definitions
+│   ├── .env.example                Environment variables template
+│   ├── middleware.ts               NextAuth middleware
+│   ├── next.config.js              Next.js configuration
+│   ├── package.json                Dependencies
+│   ├── tailwind.config.ts          Tailwind CSS config
+│   └── tsconfig.json               TypeScript configuration
+├── Dockerfile                      Docker container configuration
+├── .dockerignore                   Docker ignore rules
+├── .gitignore                      Git ignore rules
+├── README.md                       Main project documentation
+├── DEPLOYMENT_GUIDE.md             Complete deployment instructions
+├── SECURITY.md                     Security documentation
+└── STRUCTURE.txt                   This file
+
+IMPORTANT NOTES:
+----------------
+1. Dockerfile and .dockerignore MUST be at repository root
+2. The Dockerfile references "hotel_shift_log/nextjs_space/" paths
+3. Upload this entire structure to your GitHub repository
+4. Do NOT include: node_modules/, .env, uploads/, .next/, .logs/
+
+HOW TO USE:
+-----------
+1. Download all files from /home/ubuntu/hotel_shift_log/ using the Files button
+2. Copy entire hotel_shift_log/ folder to your local GitHub repository
+3. Your GitHub repo structure should match the tree above
+4. Commit and push:
+   git add .
+   git commit -m "Organized project structure for Cloud Run deployment"
+   git push origin main
+5. Deploy via Cloud Run (follow DEPLOYMENT_GUIDE.md)
+
+WHAT YOU SHOULD SEE IN GITHUB:
+-------------------------------
+After pushing, your GitHub repo should show at the root level:
+- Dockerfile
+- .dockerignore
+- .gitignore
+- README.md
+- DEPLOYMENT_GUIDE.md
+- SECURITY.md
+- STRUCTURE.txt
+- nextjs_space/ (folder)
+
+And inside nextjs_space/:
+- app/
+- components/
+- lib/
+- prisma/
+- package.json
+- (and all other Next.js files)
+
+DOCKER BUILD PATHS:
+-------------------
+The Dockerfile uses these paths:
+- COPY hotel_shift_log/nextjs_space/package.json
+- COPY hotel_shift_log/nextjs_space/ .
+
+This means:
+- Your GitHub repo should be named "Hotel_Front_Desk_Shift_Log" (or similar)
+- Inside that repo, there should be a folder called "hotel_shift_log"
+- Inside "hotel_shift_log", there should be "nextjs_space/"
+
+So the full path in GitHub would be:
+  YourRepo/hotel_shift_log/nextjs_space/
+
+ALTERNATIVE: If you want to simplify the structure, you can:
+1. Edit Dockerfile to remove "hotel_shift_log/" from all paths
+2. Put nextjs_space/ directly at repo root
+3. Structure would be: YourRepo/nextjs_space/
+

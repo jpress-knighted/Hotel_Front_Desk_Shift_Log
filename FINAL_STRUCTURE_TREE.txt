@@ -1,0 +1,65 @@
+.
+├── nextjs_space
+│   ├── app
+│   │   ├── add-report
+│   │   ├── api
+│   │   ├── dashboard
+│   │   ├── login
+│   │   ├── users
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── components
+│   │   ├── ui
+│   │   ├── add-report-form.tsx
+│   │   ├── dashboard-header.tsx
+│   │   ├── login-form.tsx
+│   │   ├── providers.tsx
+│   │   ├── report-preview-old-backup.tsx
+│   │   ├── report-preview.tsx
+│   │   ├── shift-log-dashboard.tsx
+│   │   ├── shift-log-dashboard.tsx.backup
+│   │   ├── theme-provider.tsx
+│   │   └── user-management.tsx
+│   ├── hooks
+│   │   └── use-toast.ts
+│   ├── lib
+│   │   ├── auth.ts
+│   │   ├── db.ts
+│   │   ├── email.ts
+│   │   ├── pdf-generator.tsx
+│   │   ├── rate-limit.ts
+│   │   ├── security.ts
+│   │   ├── types.ts
+│   │   └── utils.ts
+│   ├── prisma
+│   │   ├── migrations
+│   │   └── schema.prisma
+│   ├── scripts
+│   │   ├── clear-reports-data.ts
+│   │   └── seed.ts
+│   ├── types
+│   │   └── next-auth.d.ts
+│   ├── .env
+│   ├── .env.example
+│   ├── .yarnrc.yml
+│   ├── components.json
+│   ├── middleware.ts
+│   ├── next-env.d.ts
+│   ├── next.config.js
+│   ├── package.json
+│   ├── postcss.config.js
+│   ├── tailwind.config.ts
+│   └── tsconfig.json
+├── .dockerignore
+├── .gitignore
+├── DEPLOYMENT_GUIDE.md
+├── Dockerfile
+├── FINAL_STRUCTURE_TREE.txt
+├── HOW_TO_DOWNLOAD_AND_DEPLOY.txt
+├── README.md
+├── REORGANIZATION_SUMMARY.txt
+├── SECURITY.md
+└── STRUCTURE.txt
+
+16 directories, 47 files

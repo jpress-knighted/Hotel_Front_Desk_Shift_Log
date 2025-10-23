@@ -7,15 +7,15 @@ FROM base AS deps
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
-# Install dependencies from nextjs_space
-COPY nextjs_space/package.json nextjs_space/yarn.lock* ./
+# Install dependencies from hotel_shift_log/nextjs_space
+COPY hotel_shift_log/nextjs_space/package.json hotel_shift_log/nextjs_space/yarn.lock* ./
 RUN yarn install --frozen-lockfile
 
 # Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY nextjs_space/ .
+COPY hotel_shift_log/nextjs_space/ .
 
 # Generate Prisma Client with build-time DATABASE_URL
 # Use a dummy URL if not provided - the real one comes from runtime secrets

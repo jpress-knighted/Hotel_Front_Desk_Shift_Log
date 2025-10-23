@@ -50,9 +50,9 @@ yarn-error.log*
 *.pdf
 
 # Uploads (these should be in Cloud Storage in production)  
-hotel_shift_log/nextjs_space/uploads/*
+nextjs_space/uploads/*
 Uploads/*
 
 # Keep important config files
-!hotel_shift_log/nextjs_space/package.json
-!hotel_shift_log/nextjs_space/prisma/schema.prisma
+!nextjs_space/package.json
+!nextjs_space/prisma/schema.prisma

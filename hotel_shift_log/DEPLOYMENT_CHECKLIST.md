@@ -1,5 +1,25 @@
 
 # Google Cloud Platform Deployment Checklist
+## ☁️ Cloud Run with Automatic Git Deployment
+
+This simplified deployment uses Cloud Run's continuous deployment from GitHub, requiring **minimal manual steps** on GCP.
+
+### ✨ Why This Approach?
+
+**Traditional VMs/Kubernetes**: Complex, requires manual scaling, patching, load balancing  
+**Cloud Run + Git**: Simple, auto-scales, zero-downtime deployments, pay-per-use
+
+**Benefits**:
+- 🚀 **Push to deploy**: Commit → automatic deployment
+- 💰 **Cost-effective**: Pay only when requests are served ($0 when idle)
+- 🔒 **Secure**: Automatic HTTPS, managed infrastructure
+- 📈 **Auto-scaling**: Handles 1 to 1000s of users automatically
+- 🛠️ **No-code GCP**: Everything done through console UI
+- ⚡ **Fast**: Global CDN, sub-second response times
+
+**Perfect for**: Small to medium applications with variable traffic
+
+---
 
 ## ✅ Pre-Deployment Tasks
 
@@ -20,117 +40,183 @@ rm -rf *
 # Generate new hash
 node -e "const bcrypt = require('bcryptjs'); console.log(bcrypt.hashSync('NEW_PASSWORD', 12));"
 
-# Update in database
-# Connect to Cloud SQL and run:
+# Update in database via Cloud SQL console or psql
 UPDATE "users" SET password = '$2a$12$HASH...' WHERE username = 'admin';
+```
+
+### 2. Push to Git Repository
+```bash
+cd /home/ubuntu/hotel_shift_log
+git init
+git add .
+git commit -m "Initial commit - Production ready"
+git branch -M main
+git remote add origin https://github.com/YOUR_USERNAME/hotel-shift-log.git
+git push -u origin main
 ```
 
 ---
 
-## 📋 Deployment Steps
+## 📋 Simplified Deployment Steps (No-Code GCP)
 
-### Step 1: Create GCP Project
-```bash
-gcloud config set project YOUR_PROJECT_ID
-```
+### Step 1: Create Cloud SQL Database (via Console)
 
-### Step 2: Set Up Cloud SQL
-```bash
-# Create PostgreSQL instance
-gcloud sql instances create hotel-shift-log-db \
-  --database-version=POSTGRES_14 \
-  --tier=db-custom-2-4096 \
-  --region=us-central1 \
-  --root-password=STRONG_PASSWORD \
-  --storage-size=20GB \
-  --storage-type=SSD \
-  --backup-start-time=02:00 \
-  --enable-bin-log \
-  --availability-type=REGIONAL
+**Navigate to**: [Cloud SQL Console](https://console.cloud.google.com/sql)
 
-# Create database
-gcloud sql databases create hotel_shift_log \
-  --instance=hotel-shift-log-db
+1. Click **Create Instance** → Choose **PostgreSQL**
+2. Configure:
+   - **Instance ID**: `hotel-shift-log-db`
+   - **Password**: Generate a strong password (save it!)
+   - **Database version**: PostgreSQL 14
+   - **Region**: Choose closest to your users (e.g., `us-central1`)
+   - **Machine type**: Shared Core → 1 vCPU, 1.7 GB
+   - **Storage**: 10 GB SSD (auto-increase enabled)
+3. Click **Show Configuration Options** → **Connections**:
+   - Uncheck "Public IP" (not needed)
+   - Check "Private IP" (more secure, Cloud Run will connect via VPC)
+4. Click **Create** (takes 5-10 minutes)
+5. After creation:
+   - Go to **Databases** tab → **Create Database** → Name: `hotel_shift_log`
+   - **Copy the Connection Name** (format: `project-id:region:instance-name`)
 
-# Create user
-gcloud sql users create hoteluser \
-  --instance=hotel-shift-log-db \
-  --password=STRONG_PASSWORD
+### Step 2: Configure Secrets (via Console)
 
-# Get connection name
-gcloud sql instances describe hotel-shift-log-db \
-  --format="value(connectionName)"
-```
+**Navigate to**: [Secret Manager Console](https://console.cloud.google.com/security/secret-manager)
 
-### Step 3: Configure Secrets
-```bash
-# Generate strong secrets
-NEXTAUTH_SECRET=$(openssl rand -base64 32)
-echo -n "$NEXTAUTH_SECRET" | gcloud secrets create nextauth-secret --data-file=-
+1. Enable **Secret Manager API** (if prompted)
+2. Create secrets:
 
-# SMTP password (for Gmail, use App Password)
-echo -n "YOUR_SMTP_PASSWORD" | gcloud secrets create smtp-password --data-file=-
+   **Secret 1: NEXTAUTH_SECRET**
+   - Click **Create Secret**
+   - Name: `nextauth-secret`
+   - Secret value: Generate with `openssl rand -base64 32` or use a password manager
+   - Click **Create**
 
-# Grant access
-PROJECT_NUMBER=$(gcloud projects describe YOUR_PROJECT_ID --format="value(projectNumber)")
-gcloud secrets add-iam-policy-binding nextauth-secret \
-  --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
-  --role="roles/secretmanager.secretAccessor"
+   **Secret 2: SMTP_PASSWORD**
+   - Click **Create Secret**
+   - Name: `smtp-password`
+   - For Gmail: [Generate App Password](https://myaccount.google.com/apppasswords)
+   - Click **Create**
 
-gcloud secrets add-iam-policy-binding smtp-password \
-  --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
-  --role="roles/secretmanager.secretAccessor"
-```
+   **Secret 3: DATABASE_URL**
+   - Click **Create Secret**
+   - Name: `database-url`
+   - Format: `postgresql://postgres:YOUR_DB_PASSWORD@/hotel_shift_log?host=/cloudsql/YOUR_CONNECTION_NAME`
+   - Replace `YOUR_DB_PASSWORD` with the Cloud SQL password from Step 1
+   - Replace `YOUR_CONNECTION_NAME` with the connection name from Step 1
+   - Click **Create**
 
-### Step 4: Build and Deploy
-```bash
-# Enable APIs
-gcloud services enable cloudbuild.googleapis.com run.googleapis.com artifactregistry.googleapis.com
+### Step 3: Deploy to Cloud Run (via Console - No Code!)
 
-# Create registry
-gcloud artifacts repositories create hotel-shift-log \
-  --repository-format=docker \
-  --location=us-central1
+**Navigate to**: [Cloud Run Console](https://console.cloud.google.com/run)
 
-# Build image
-cd /home/ubuntu/hotel_shift_log/nextjs_space
-gcloud builds submit \
-  --tag us-central1-docker.pkg.dev/YOUR_PROJECT_ID/hotel-shift-log/app:v1.0.0
+1. Click **Create Service**
+2. Select **Continuously deploy from a repository (source-based)**
+3. Click **Set Up with Cloud Build**:
+   - **Repository provider**: GitHub
+   - **Authenticate and select repository**: `YOUR_USERNAME/hotel-shift-log`
+   - **Branch**: `main`
+   - **Build type**: Dockerfile or Buildpack (Cloud Run auto-detects Next.js)
+   - **Dockerfile path**: Leave default or specify if you have one
+   - Click **Save**
+4. Configure service:
+   - **Service name**: `hotel-shift-log`
+   - **Region**: Same as Cloud SQL (e.g., `us-central1`)
+   - **Authentication**: **Allow unauthenticated invocations** (users need to access login page)
+   - **CPU allocation**: CPU is always allocated
+   - **Autoscaling**: Min instances: `1`, Max instances: `10`
+   - **Memory**: `2 GiB`
+   - **CPU**: `2`
+5. Click **Container, Variables & Secrets, Connections**:
+   
+   **Variables tab** - Add these environment variables:
+   - `NEXTAUTH_URL`: Your Cloud Run URL (you'll update this after first deployment)
+   - `SMTP_HOST`: `smtp.gmail.com`
+   - `SMTP_PORT`: `587`
+   - `SMTP_USER`: `your-email@gmail.com`
+   
+   **Secrets tab** - Reference the secrets:
+   - Click **Reference a Secret** → Select `nextauth-secret` → Expose as `NEXTAUTH_SECRET`
+   - Click **Reference a Secret** → Select `smtp-password` → Expose as `SMTP_PASSWORD`
+   - Click **Reference a Secret** → Select `database-url` → Expose as `DATABASE_URL`
+   
+   **Connections tab** - Connect to Cloud SQL:
+   - Click **Add Connection**
+   - Select `hotel-shift-log-db`
 
-# Deploy to Cloud Run
-gcloud run deploy hotel-shift-log \
-  --image us-central1-docker.pkg.dev/YOUR_PROJECT_ID/hotel-shift-log/app:v1.0.0 \
-  --platform managed \
-  --region us-central1 \
-  --allow-unauthenticated \
-  --memory 2Gi \
-  --cpu 2 \
-  --min-instances 1 \
-  --max-instances 10 \
-  --add-cloudsql-instances YOUR_CONNECTION_NAME \
-  --set-env-vars "DATABASE_URL=postgresql://hoteluser:PASSWORD@/hotel_shift_log?host=/cloudsql/YOUR_CONNECTION_NAME" \
-  --set-secrets "NEXTAUTH_SECRET=nextauth-secret:latest,SMTP_PASSWORD=smtp-password:latest" \
-  --set-env-vars "NEXTAUTH_URL=https://YOUR_DOMAIN.com,SMTP_HOST=smtp.gmail.com,SMTP_PORT=587,SMTP_USER=your-email@gmail.com"
-```
+6. Click **Create** (Cloud Build will build from GitHub - takes 5-10 minutes)
+7. Once deployed:
+   - Copy the Cloud Run URL (e.g., `https://hotel-shift-log-abc123.run.app`)
+   - Go back to **Edit & Deploy New Revision**
+   - Update `NEXTAUTH_URL` variable to the actual Cloud Run URL
+   - Click **Deploy**
 
-### Step 5: Run Database Migrations
-```bash
-# Start Cloud SQL proxy
-cloud-sql-proxy YOUR_CONNECTION_NAME &
+### Step 4: Run Database Migrations (One-Time Setup)
 
-# Set database URL
-export DATABASE_URL="postgresql://hoteluser:PASSWORD@localhost:5432/hotel_shift_log"
+**Option A: Via Cloud Shell (Easiest)**
 
-# Run migrations
-cd /home/ubuntu/hotel_shift_log/nextjs_space
-npx prisma db push
+1. Open [Cloud Shell](https://console.cloud.google.com/cloudshell)
+2. Clone your repository:
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/hotel-shift-log.git
+   cd hotel-shift-log/nextjs_space
+   ```
+3. Install dependencies:
+   ```bash
+   npm install
+   ```
+4. Connect to Cloud SQL:
+   ```bash
+   gcloud sql connect hotel-shift-log-db --user=postgres --quiet
+   # Enter your database password when prompted
+   ```
+5. In psql, run:
+   ```sql
+   \c hotel_shift_log
+   \q
+   ```
+6. Set DATABASE_URL and run migrations:
+   ```bash
+   export DATABASE_URL="postgresql://postgres:YOUR_PASSWORD@127.0.0.1:5432/hotel_shift_log?connection_limit=1"
+   npx prisma db push
+   npx prisma db seed
+   ```
 
-# Seed database
-npx prisma db seed
+**Option B: Via Cloud Run Job (More Advanced)**
 
-# Stop proxy
-kill %1
-```
+Create a one-time job that runs migrations, then use Cloud Run for your app.
+
+### Step 5: Update Deployment URL
+
+After first deployment, update this variable in Cloud Run:
+- `NEXTAUTH_URL` → Your actual Cloud Run URL
+
+---
+
+## ⚠️ Important Note: File Upload Storage
+
+**Current Setup**: Files are stored locally in the `uploads/` folder.
+
+**Cloud Run Limitation**: Cloud Run instances are **ephemeral** - uploaded files will be lost when:
+- The app redeploys
+- Cloud Run scales down/up instances
+- Container restarts
+
+**Short-term Solution** (for initial testing):
+- Set min instances to 1 (already configured above)
+- Files will persist during a session but may be lost on redeploy
+
+**Long-term Solution** (recommended for production):
+- Migrate file storage to **Google Cloud Storage**
+- Benefits: Persistent, scalable, multi-instance safe
+- Implementation: Replace file system writes with Cloud Storage API calls
+- Estimated effort: 2-3 hours of development
+
+**When to implement Cloud Storage**:
+- ✅ **Now**: If you expect heavy file uploads or multiple users
+- ⏳ **Later**: If you're just testing with a few users initially
+
+---
 
 ### Step 6: Configure Email Recipients
 1. Log into the deployed application as admin
@@ -141,80 +227,58 @@ kill %1
    - Ensure email address is filled in
    - Click **Save**
 
-### Step 7: Set Up Custom Domain (Optional)
-```bash
-# Map domain
-gcloud run domain-mappings create \
-  --service hotel-shift-log \
-  --domain your-domain.com \
-  --region us-central1
+### Step 7: Set Up Custom Domain (Optional - via Console)
 
-# Follow DNS verification instructions
-```
+**Navigate to**: Your Cloud Run service → **Manage Custom Domains**
 
-### Step 8: Configure Backups
-```bash
-# Create backup bucket
-gcloud storage buckets create gs://YOUR_PROJECT_ID-hotel-backups \
-  --location=us-central1 \
-  --uniform-bucket-level-access
+1. Click **Add Mapping**
+2. Select your Cloud Run service
+3. Enter your domain (e.g., `shifts.yourhotel.com`)
+4. Follow the DNS verification steps:
+   - Add the provided CNAME records to your domain registrar
+   - Wait for verification (can take up to 24 hours)
+5. Cloud Run will automatically provision SSL certificate
 
-# Enable versioning
-gcloud storage buckets update gs://YOUR_PROJECT_ID-hotel-backups \
-  --versioning
+### Step 8: Enable Automatic Backups (Already Configured!)
 
-# Set retention (90 days)
-cat > lifecycle.json << EOF
-{
-  "lifecycle": {
-    "rule": [{
-      "action": {"type": "Delete"},
-      "condition": {"age": 90}
-    }]
-  }
-}
-EOF
-
-gcloud storage buckets update gs://YOUR_PROJECT_ID-hotel-backups \
-  --lifecycle-file=lifecycle.json
-```
+**Cloud SQL automatically backs up your database**:
+- Navigate to your Cloud SQL instance → **Backups** tab
+- Verify automated backups are enabled (default: daily at 2 AM)
+- Backups are retained for 7 days (increase in **Edit Instance** if needed)
 
 ---
 
 ## 🔒 Security Hardening
 
 ### Change Default Passwords
-- [ ] Admin password changed
-- [ ] Manager password changed
-- [ ] Employee password changed
-- [ ] Database password is strong (20+ characters)
+- [ ] Admin password changed (username: `admin`)
+- [ ] Manager password changed (username: `manager`)
+- [ ] Employee password changed (username: `employee`)
+- [ ] Cloud SQL password is strong (20+ characters)
 - [ ] NEXTAUTH_SECRET is strong (32+ characters)
 
-### Configure Monitoring
-```bash
-# Set up uptime checks
-gcloud monitoring uptime-checks create http hotel-shift-log \
-  --resource-type=url \
-  --url="https://YOUR_DOMAIN.com/login"
+### Configure Monitoring (via Console)
 
-# Set up error rate alerts
-# (Create through Cloud Console UI)
-```
+**Navigate to**: [Cloud Monitoring](https://console.cloud.google.com/monitoring)
 
-### Enable Cloud Armor (Optional)
-```bash
-# Create WAF policy
-gcloud compute security-policies create hotel-waf \
-  --description "WAF for hotel shift log"
+**Set up Uptime Check**:
+1. Go to **Uptime checks** → **Create Uptime Check**
+2. Configure:
+   - **Title**: `Hotel Shift Log - Login Page`
+   - **Protocol**: HTTPS
+   - **Resource Type**: URL
+   - **Hostname**: Your Cloud Run URL
+   - **Path**: `/login`
+3. Click **Create**
 
-# Add rate limiting
-gcloud compute security-policies rules create 1000 \
-  --security-policy hotel-waf \
-  --expression "true" \
-  --action "rate-based-ban" \
-  --rate-limit-threshold-count 100 \
-  --rate-limit-threshold-interval-sec 60
-```
+**Set up Error Rate Alert** (Optional but Recommended):
+1. Go to **Alerting** → **Create Policy**
+2. Add condition:
+   - **Target**: Cloud Run Revision
+   - **Metric**: `Request count` (filter for 5xx errors)
+   - **Threshold**: > 10 errors in 5 minutes
+3. Add notification channel (email)
+4. Click **Save**
 
 ---
 
@@ -276,49 +340,71 @@ gcloud compute security-policies rules create 1000 \
 
 ---
 
-## 💾 Backup Procedures
+## 💾 Backup & Restore Procedures
 
-### Manual Backup
-```bash
-# Database
-gcloud sql backups create --instance=hotel-shift-log-db
+### Database Backups (Automatic)
 
-# Files
-gcloud storage cp -r /path/to/uploads gs://YOUR_PROJECT_ID-hotel-backups/manual-$(date +%Y%m%d)/
-```
+Cloud SQL automatically backs up your database daily. To restore:
 
-### Restore Procedure
-```bash
-# List backups
-gcloud sql backups list --instance=hotel-shift-log-db
+1. **Navigate to**: [Cloud SQL Console](https://console.cloud.google.com/sql) → `hotel-shift-log-db`
+2. Go to **Backups** tab
+3. Click on a backup → **Restore**
+4. Choose **Restore to same instance** or **Restore to new instance**
+5. Confirm (this will overwrite current data if same instance)
 
-# Restore database
-gcloud sql backups restore BACKUP_ID \
-  --backup-instance=hotel-shift-log-db \
-  --target-instance=hotel-shift-log-db
+**Create manual backup before major changes**:
+- Go to **Backups** tab → **Create Backup**
 
-# Restore files
-gcloud storage cp -r gs://YOUR_PROJECT_ID-hotel-backups/backup-YYYYMMDD/* /path/to/uploads/
-```
+### File Backups (Manual - Only if not using Cloud Storage)
+
+**Important**: If you're using local file storage, files are **not backed up automatically**.
+
+**To back up files**:
+1. Access your Cloud Run service logs to find where files are stored
+2. Download files before major redeployments
+3. **Recommended**: Migrate to Cloud Storage for automatic persistence
+
+**If using Cloud Storage** (future migration):
+- Files are automatically versioned and durable
+- No manual backup needed
 
 ---
 
-## 📊 Monitoring Checklist
+## 🔄 Continuous Deployment
 
-### Set Up Alerts For:
-- [ ] Error rate > 5%
-- [ ] Response time > 5 seconds
-- [ ] CPU usage > 80%
-- [ ] Memory usage > 80%
-- [ ] Disk usage > 80%
-- [ ] Failed login attempts > 10 per hour
-- [ ] Database connection failures
+**How it works**: Once set up, Cloud Run automatically redeploys when you push to GitHub!
 
-### Regular Reviews:
-- [ ] **Daily**: Check error logs
-- [ ] **Weekly**: Review backup success
-- [ ] **Monthly**: Review user access, test backups
-- [ ] **Quarterly**: Security audit, performance review
+```bash
+# Make code changes locally
+git add .
+git commit -m "Update feature X"
+git push origin main
+
+# Cloud Build automatically:
+# 1. Detects the push
+# 2. Builds a new container
+# 3. Deploys to Cloud Run
+# 4. Zero downtime deployment!
+```
+
+**View build history**: [Cloud Build Console](https://console.cloud.google.com/cloud-build/builds)
+
+---
+
+## 📊 Monitoring & Maintenance
+
+### Recommended Alerts (Set up in Cloud Console):
+- [ ] Uptime check for `/login` page
+- [ ] Error rate > 5% (5xx responses)
+- [ ] Response time > 3 seconds
+- [ ] Cloud SQL CPU > 80%
+- [ ] Cloud SQL storage > 80%
+
+### Regular Maintenance:
+- **Daily**: Check Cloud Logging for errors ([link](https://console.cloud.google.com/logs))
+- **Weekly**: Verify database backups are running
+- **Monthly**: Review user access and active accounts
+- **Quarterly**: Test database restore procedure
 
 ---
 
@@ -353,35 +439,75 @@ gcloud storage cp -r gs://YOUR_PROJECT_ID-hotel-backups/backup-YYYYMMDD/* /path/
 
 ---
 
-## ✅ Sign-Off
+## 💰 Estimated Monthly Costs
+
+**For a small hotel (10-50 users, moderate usage)**:
+
+| Service | Configuration | Est. Cost |
+|---------|--------------|-----------|
+| Cloud Run | 2 GiB RAM, 2 vCPU, min 1 instance | $15-30/month |
+| Cloud SQL | Shared Core, 10GB storage | $10-20/month |
+| Secret Manager | 3 secrets | $0.06/month |
+| Cloud Build | 120 builds/month | Free (first 120 builds) |
+| **Total** | | **~$25-50/month** |
+
+**Cost optimization tips**:
+- Use shared core Cloud SQL initially (upgrade if needed)
+- Set min instances to 0 if not mission-critical (saves $10-15/month)
+- Monitor with [Cloud Billing Reports](https://console.cloud.google.com/billing)
+
+---
+
+## ✅ Pre-Launch Checklist
 
 ### Before Going Live:
-- [ ] All pre-deployment tasks completed
-- [ ] All deployment steps completed
-- [ ] All post-deployment tests passed
-- [ ] Email notifications tested
-- [ ] Backups configured and tested
-- [ ] Monitoring and alerts configured
-- [ ] Security hardening completed
-- [ ] Documentation reviewed
-- [ ] Team trained on system usage
-- [ ] Incident response plan in place
+- [ ] All default passwords changed
+- [ ] Database migrations completed successfully
+- [ ] Email notifications tested (high-priority reports)
+- [ ] All three user roles tested (admin, manager, employee)
+- [ ] File uploads tested (up to 30MB)
+- [ ] Uptime monitoring configured
+- [ ] Cloud SQL backups verified
+- [ ] Team trained on using the system
+- [ ] Custom domain configured (if applicable)
 
-**Deployed By**: _______________  
-**Date**: _______________  
-**Deployment URL**: _______________  
-**Database Instance**: _______________  
-**Backup Location**: _______________
-
----
-
-## 📞 Support Contacts
-
-**System Administrator**: _______________  
-**GCP Support**: https://cloud.google.com/support  
-**Emergency Contact**: _______________
+**Deployment Details**:
+- **Date**: _______________  
+- **Deployed By**: _______________  
+- **Cloud Run URL**: _______________  
+- **Custom Domain** (if any): _______________  
+- **GitHub Repo**: _______________
 
 ---
 
-**Document Version**: 1.0  
-**Last Updated**: October 21, 2025
+## 📞 Quick Links & Support
+
+- **Application**: Your Cloud Run URL
+- **GCP Console**: https://console.cloud.google.com
+- **Cloud Run Dashboard**: https://console.cloud.google.com/run
+- **Cloud SQL Dashboard**: https://console.cloud.google.com/sql
+- **Logs Viewer**: https://console.cloud.google.com/logs
+- **GCP Support**: https://cloud.google.com/support
+- **Security Documentation**: `/SECURITY.md`
+
+---
+
+## 🎉 You're All Set!
+
+Your Hotel Shift Log application is now running on Google Cloud Platform with:
+- ✅ Automatic deployments from GitHub
+- ✅ Scalable, managed infrastructure  
+- ✅ Daily database backups
+- ✅ HTTPS encryption
+- ✅ Email notifications for high-priority reports
+
+**Next Steps**:
+1. Share the Cloud Run URL with your team
+2. Change all default passwords
+3. Start using the application!
+4. Consider migrating to Cloud Storage for file uploads (when ready)
+
+---
+
+**Document Version**: 2.0 (Simplified for Cloud Run + Git)  
+**Last Updated**: October 23, 2025

@@ -67,236 +67,193 @@ This application replaces traditional physical shift logs with a modern, digital
 
 ---
 
-## 🚀 Google Cloud Platform Deployment Guide
+## 🚀 Simplified Cloud Deployment (Cloud Run + GitHub)
+
+### Quick Start: Push to Deploy in 3 Steps
+
+This application is designed for **zero-code deployment** to Google Cloud Platform using Cloud Run with continuous deployment from GitHub.
+
+#### ✨ Benefits:
+- 🚀 **Automatic deployments**: Push to GitHub → auto-deploy to production
+- 💰 **Cost-effective**: ~$25-50/month for small hotels
+- 🔒 **Secure by default**: HTTPS, managed infrastructure, secret management
+- 📈 **Auto-scaling**: Handles 1 to 1000s of users automatically
+- 🛠️ **No command-line needed**: Everything via GCP Console UI
+
+### Prerequisites
+- Google Cloud account (free tier available)
+- GitHub account (free)
+- Basic understanding of web browsers (no coding required!)
+
+### Full Deployment Guide
+
+📖 **See [DEPLOYMENT_CHECKLIST.md](./DEPLOYMENT_CHECKLIST.md)** for complete step-by-step instructions
+
+**Quick Overview**:
+1. **Push code to GitHub** (one-time setup)
+2. **Create Cloud SQL database** (via GCP Console - 5 minutes)
+3. **Deploy to Cloud Run** (connects to GitHub - 5 minutes)
+4. **Run database migrations** (via Cloud Shell - 2 minutes)
+5. **Done!** Auto-deploys on every GitHub push
+
+**Additional Setup Guides**:
+- 📘 [GitHub Setup Guide](./GITHUB_SETUP.md) - How to push code to GitHub
+- 🔒 [Security Documentation](./SECURITY.md) - Security features and best practices
+
+---
+
+## 💻 Local Development (Alternative to Cloud Deployment)
 
 ### Prerequisites
 
-- Google Cloud account with billing enabled
-- `gcloud` CLI installed and configured
-- Domain name (optional but recommended)
+- Node.js 18+ and Yarn
+- PostgreSQL 14+
+- Git
 
-### Architecture Overview
-
-```
-Google Cloud Platform
-├── Cloud SQL (PostgreSQL) - Database
-├── Cloud Run - Application hosting
-├── Cloud Storage - File uploads and backups
-├── Cloud Scheduler - Automated backups
-├── Secret Manager - Environment variables
-└── Cloud Monitoring - Logging and alerts
-```
-
----
-
-## 📦 Part 1: Database Setup (Cloud SQL)
-
-### Step 1: Create PostgreSQL Instance
+### Setup
 
 ```bash
-# Set your project ID
-gcloud config set project YOUR_PROJECT_ID
-
-# Create Cloud SQL instance (customize as needed)
-gcloud sql instances create hotel-shift-log-db \
-  --database-version=POSTGRES_14 \
-  --tier=db-f1-micro \
-  --region=us-central1 \
-  --root-password=TEMPORARY_SECURE_PASSWORD \
-  --storage-size=10GB \
-  --storage-type=SSD \
-  --backup-start-time=02:00 \
-  --enable-bin-log \
-  --maintenance-window-day=SUN \
-  --maintenance-window-hour=3
-```
-
-**Production recommendations:**
-- Use `db-custom-2-4096` or higher tier for production
-- Enable high availability with `--availability-type=REGIONAL`
-- Increase storage size based on expected data volume
-
-### Step 2: Create Database and User
-
-```bash
-# Create the database
-gcloud sql databases create hotel_shift_log \
-  --instance=hotel-shift-log-db
-
-# Create application user
-gcloud sql users create hoteluser \
-  --instance=hotel-shift-log-db \
-  --password=YOUR_SECURE_PASSWORD
-```
-
-### Step 3: Configure Network Access
-
-```bash
-# Allow Cloud Run to access Cloud SQL (automatic connection)
-# No additional firewall rules needed for Cloud Run
-
-# For external management access (optional, use with caution):
-gcloud sql instances patch hotel-shift-log-db \
-  --authorized-networks=YOUR_IP_ADDRESS/32
-```
-
-### Step 4: Get Connection Details
-
-```bash
-# Get the connection name
-gcloud sql instances describe hotel-shift-log-db \
-  --format="value(connectionName)"
-
-# Example output: YOUR_PROJECT_ID:us-central1:hotel-shift-log-db
-```
-
-Save this connection name - you'll need it for Cloud Run.
-
----
-
-## 🌐 Part 2: Application Deployment (Cloud Run)
-
-### Step 1: Prepare Application for Deployment
-
-In your `nextjs_space` directory, create a production `Dockerfile`:
-
-```dockerfile
-# /home/ubuntu/hotel_shift_log/nextjs_space/Dockerfile
-FROM node:18-alpine AS deps
-RUN apk add --no-cache libc6-compat openssl
-WORKDIR /app
+# Clone repository
+git clone https://github.com/YOUR_USERNAME/hotel-shift-log.git
+cd hotel-shift-log/nextjs_space
 
 # Install dependencies
-COPY package.json yarn.lock* ./
-RUN yarn install --frozen-lockfile --production=false
+yarn install
 
-# Build stage
-FROM node:18-alpine AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+# Create .env file (copy from .env.example and fill in values)
+cp .env.example .env
+# Edit .env with your database credentials and other config
 
-# Generate Prisma client
-RUN npx prisma generate
+# Set up local PostgreSQL database
+createdb hotel_shift_log
 
-# Build application
-ENV NEXT_TELEMETRY_DISABLED 1
-ENV NODE_ENV production
-RUN yarn build
-
-# Production stage
-FROM node:18-alpine AS runner
-WORKDIR /app
-
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
-
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-# Copy necessary files
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-
-# Create uploads directory with correct permissions
-RUN mkdir -p /app/uploads && chown -R nextjs:nodejs /app/uploads
-
-USER nextjs
-
-EXPOSE 3000
-
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
-
-CMD ["node", "server.js"]
-```
-
-### Step 2: Configure Environment Variables in Secret Manager
-
-```bash
-# Create secrets for sensitive data
-echo -n "YOUR_NEXTAUTH_SECRET" | gcloud secrets create nextauth-secret --data-file=-
-echo -n "YOUR_SMTP_PASSWORD" | gcloud secrets create smtp-password --data-file=-
-
-# Grant Cloud Run access to secrets
-gcloud secrets add-iam-policy-binding nextauth-secret \
-  --member="serviceAccount:YOUR_PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
-  --role="roles/secretmanager.secretAccessor"
-
-gcloud secrets add-iam-policy-binding smtp-password \
-  --member="serviceAccount:YOUR_PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
-  --role="roles/secretmanager.secretAccessor"
-```
-
-### Step 3: Build and Push Docker Image
-
-```bash
-# Enable required APIs
-gcloud services enable cloudbuild.googleapis.com
-gcloud services enable run.googleapis.com
-gcloud services enable artifactregistry.googleapis.com
-
-# Create Artifact Registry repository
-gcloud artifacts repositories create hotel-shift-log \
-  --repository-format=docker \
-  --location=us-central1
-
-# Build and push image (from nextjs_space directory)
-cd /home/ubuntu/hotel_shift_log/nextjs_space
-
-gcloud builds submit \
-  --tag us-central1-docker.pkg.dev/YOUR_PROJECT_ID/hotel-shift-log/app:latest
-```
-
-### Step 4: Deploy to Cloud Run
-
-```bash
-# Deploy with Cloud SQL connection
-gcloud run deploy hotel-shift-log \
-  --image us-central1-docker.pkg.dev/YOUR_PROJECT_ID/hotel-shift-log/app:latest \
-  --platform managed \
-  --region us-central1 \
-  --allow-unauthenticated \
-  --memory 1Gi \
-  --cpu 2 \
-  --min-instances 1 \
-  --max-instances 10 \
-  --add-cloudsql-instances YOUR_PROJECT_ID:us-central1:hotel-shift-log-db \
-  --set-env-vars "DATABASE_URL=postgresql://hoteluser:YOUR_SECURE_PASSWORD@/hotel_shift_log?host=/cloudsql/YOUR_PROJECT_ID:us-central1:hotel-shift-log-db" \
-  --set-secrets "NEXTAUTH_SECRET=nextauth-secret:latest,SMTP_PASSWORD=smtp-password:latest" \
-  --set-env-vars "NEXTAUTH_URL=https://YOUR_DOMAIN.com,SMTP_HOST=smtp.gmail.com,SMTP_PORT=587,SMTP_USER=your-email@gmail.com"
-```
-
-### Step 5: Run Database Migrations
-
-```bash
-# Get Cloud Run service URL
-SERVICE_URL=$(gcloud run services describe hotel-shift-log --region=us-central1 --format="value(status.url)")
-
-# Connect to Cloud SQL proxy locally for migrations
-cloud-sql-proxy YOUR_PROJECT_ID:us-central1:hotel-shift-log-db &
-
-# Set DATABASE_URL for local migrations
-export DATABASE_URL="postgresql://hoteluser:YOUR_SECURE_PASSWORD@localhost:5432/hotel_shift_log"
-
-# Run migrations
-cd /home/ubuntu/hotel_shift_log/nextjs_space
+# Run database migrations
 npx prisma db push
 
-# Seed initial users
+# Seed database with default users
 npx prisma db seed
 
-# Stop Cloud SQL proxy
-kill %1
+# Start development server
+yarn dev
+```
+
+The application will be available at `http://localhost:3000`
+
+### Environment Variables
+
+See `.env.example` for all required environment variables. Key variables:
+
+- `DATABASE_URL`: PostgreSQL connection string
+- `NEXTAUTH_SECRET`: Generate with `openssl rand -base64 32`
+- `NEXTAUTH_URL`: Your application URL
+- `SMTP_*`: Email configuration for high-priority alerts
+
+---
+
+## 📖 Usage Guide
+
+### For Employees
+
+1. **Log in** with your credentials
+2. **Create Report**: Click "Add Report" button
+   - Select priority (Low/Medium/High)
+   - Enter room numbers (comma-separated)
+   - Add description
+   - Attach files if needed (optional)
+   - Submit
+3. **View Reports**: See your submitted reports on the dashboard
+4. **Acknowledge Reports**: Click "Read" button on reports from other shifts
+
+### For Managers
+
+All employee features, plus:
+
+1. **View All Reports**: See reports from all employees
+2. **Add Comments**: 
+   - Public comments (visible to everyone)
+   - Private manager notes (visible only to managers/admins)
+   - Attach files to comments
+3. **Mark as Resolved**: Mark reports that have been addressed
+4. **Filter & Export**: Use advanced filters and export to PDF/CSV
+5. **Like Comments**: Engage with other manager comments
+
+### For Super Admins
+
+All manager features, plus:
+
+1. **User Management**:
+   - Create new users
+   - Edit user roles and permissions
+   - Archive/restore users
+   - Configure email notification recipients
+2. **System Configuration**: Access to all system settings
+3. **View Archived Reports**: See historical archived reports
+
+---
+
+## 🔧 Advanced Configuration
+
+### Email Notifications
+
+Configure SMTP settings in your `.env` file or Cloud Run environment variables:
+
+```bash
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT="587"
+SMTP_USER="your-email@gmail.com"
+SMTP_PASSWORD="your-app-password"  # For Gmail, use App Password
+```
+
+**To enable email alerts**:
+1. Log in as admin
+2. Go to Users page
+3. Edit each manager who should receive alerts
+4. Toggle "Receives High Priority Emails" to ON
+5. Ensure their email address is set
+
+### File Upload Limits
+
+Current limits (configurable in code):
+- Max file size: 30MB per file
+- Max total size per report: 90MB
+- Supported types: Images, PDFs, Office documents, text files
+
+### Rate Limits
+
+Protection against abuse:
+- 25 reports per user per day
+- 30 manager comments per report
+- File size and count validations
+
+---
+
+## 🗄️ Database Management
+
+### Backup Database
+
+```bash
+# Local PostgreSQL
+pg_dump hotel_shift_log > backup_$(date +%Y%m%d).sql
+
+# Cloud SQL (automatic daily backups enabled by default)
+gcloud sql backups create --instance=hotel-shift-log-db
+```
+
+### Restore Database
+
+```bash
+# List available backups
+gcloud sql backups list --instance=hotel-shift-log-db
+
+# Restore from backup
+gcloud sql backups restore BACKUP_ID \
+  --backup-instance=hotel-shift-log-db \
+  --target-instance=hotel-shift-log-db
 ```
 
 ---
 
-## 📧 Part 3: Email Configuration
+## 📧 Email Configuration
 
 The application supports high-priority report notifications. Configure email using one of these providers:
 

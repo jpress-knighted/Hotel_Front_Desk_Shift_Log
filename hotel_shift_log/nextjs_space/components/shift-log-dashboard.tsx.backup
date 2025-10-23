@@ -1,0 +1,348 @@
+
+'use client'
+
+import { useState, useEffect } from 'react'
+import { UserRole, Priority } from '@prisma/client'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Plus, Search, RotateCcw, MessageCircle, Paperclip, AlertTriangle, AlertCircle, Download, Trash2 } from 'lucide-react'
+import Link from 'next/link'
+import ReportPreview from '@/components/report-preview'
+
+interface User {
+  id: string
+  username: string
+  role: UserRole
+  name?: string | null
+}
+
+interface ShiftReport {
+  id: string
+  priority: Priority
+  bodyText: string | null
+  notedRooms: number[]
+  stayoverRooms: number[]
+  arrivals: number | null
+  departures: number | null
+  occupancyPercentage: number | null
+  createdAt: string
+  author: {
+    name: string
+    username: string
+  }
+  attachments: {
+    filename: string
+    originalName: string
+  }[]
+  comments: {
+    id: string
+    content: string
+    author: {
+      name: string
+    }
+    createdAt: string
+  }[]
+}
+
+interface FilterState {
+  priority: string
+  hasAttachments: boolean
+  hasComments: boolean
+  searchText: string
+  employeeFilter: string
+  notedRoom: string
+  dateBefore: string
+}
+
+interface ShiftLogDashboardProps {
+  user: User
+}
+
+export default function ShiftLogDashboard({ user }: ShiftLogDashboardProps) {
+  const [reports, setReports] = useState<ShiftReport[]>([])
+  const [employees, setEmployees] = useState<{ id: string; name: string; username: string }[]>([])
+  const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [expandedReport, setExpandedReport] = useState<string | null>(null)
+  
+  const [filters, setFilters] = useState<FilterState>({
+    priority: 'all',
+    hasAttachments: false,
+    hasComments: false,
+    searchText: '',
+    employeeFilter: 'all',
+    notedRoom: '',
+    dateBefore: '',
+  })
+
+  useEffect(() => {
+    loadEmployees()
+    loadReports(true)
+  }, [])
+
+  const loadEmployees = async () => {
+    try {
+      const response = await fetch('/api/employees')
+      if (response.ok) {
+        const data = await response.json()
+        setEmployees(data)
+      }
+    } catch (error) {
+      console.error('Error loading employees:', error)
+    }
+  }
+
+  const loadReports = async (reset = false) => {
+    if (reset) {
+      setLoading(true)
+      setPage(1)
+    } else {
+      setLoadingMore(true)
+    }
+
+    try {
+      const params = new URLSearchParams({
+        page: reset ? '1' : page.toString(),
+        limit: '25',
+        ...Object.fromEntries(
+          Object.entries(filters).filter(([_, value]) => 
+            value !== '' && value !== 'all' && value !== false
+          )
+        )
+      })
+
+      const response = await fetch(`/api/reports?${params}`)
+      if (response.ok) {
+        const data = await response.json()
+        
+        if (reset) {
+          setReports(data.reports)
+        } else {
+          setReports(prev => [...prev, ...data.reports])
+        }
+        
+        setHasMore(data.hasMore)
+        if (!reset) setPage(prev => prev + 1)
+      }
+    } catch (error) {
+      console.error('Error loading reports:', error)
+    } finally {
+      setLoading(false)
+      setLoadingMore(false)
+    }
+  }
+
+  const handleFilterUpdate = () => {
+    loadReports(true)
+  }
+
+  const handleClearFilters = () => {
+    setFilters({
+      priority: 'all',
+      hasAttachments: false,
+      hasComments: false,
+      searchText: '',
+      employeeFilter: 'all',
+      notedRoom: '',
+      dateBefore: '',
+    })
+    // Auto-apply after clearing
+    setTimeout(() => loadReports(true), 100)
+  }
+
+  const getPriorityIcon = (priority: Priority) => {
+    switch (priority) {
+      case Priority.HIGH:
+        return <AlertTriangle className="h-4 w-4 text-red-500" />
+      case Priority.MEDIUM:
+        return <AlertCircle className="h-4 w-4 text-yellow-500" />
+      case Priority.LOW:
+        return <AlertCircle className="h-4 w-4 text-blue-500" />
+      default:
+        return null
+    }
+  }
+
+  const formatDateTime = (dateString: string) => {
+    return new Date(dateString).toLocaleString(undefined, {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading shift reports...</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Filters Section */}
+      <Card className="casino-card">
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            <div>
+              <Label htmlFor="priority">Priority Level</Label>
+              <Select 
+                value={filters.priority} 
+                onValueChange={(value) => setFilters(prev => ({...prev, priority: value}))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All Priorities" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Priorities</SelectItem>
+                  <SelectItem value="NONE">None</SelectItem>
+                  <SelectItem value="LOW">Low</SelectItem>
+                  <SelectItem value="MEDIUM">Medium</SelectItem>
+                  <SelectItem value="HIGH">High</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="employee">Employee</Label>
+              <Select 
+                value={filters.employeeFilter} 
+                onValueChange={(value) => setFilters(prev => ({...prev, employeeFilter: value}))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All Employees" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Employees</SelectItem>
+                  {employees?.map((employee) => (
+                    <SelectItem key={employee.id} value={employee.id}>
+                      {employee.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="noted-room">Noted Room Number</Label>
+              <Input
+                id="noted-room"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={filters.notedRoom}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9]/g, '')
+                  setFilters(prev => ({...prev, notedRoom: value}))
+                }}
+                placeholder="Room number"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="date-before">Date Before</Label>
+              <Input
+                id="date-before"
+                type="date"
+                value={filters.dateBefore}
+                onChange={(e) => setFilters(prev => ({...prev, dateBefore: e.target.value}))}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <Label htmlFor="search">Search Text</Label>
+              <Input
+                id="search"
+                value={filters.searchText}
+                onChange={(e) => setFilters(prev => ({...prev, searchText: e.target.value}))}
+                placeholder="Search in report body or attachments"
+              />
+            </div>
+
+            <div className="flex items-end gap-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="has-attachments"
+                  checked={filters.hasAttachments}
+                  onCheckedChange={(checked) => setFilters(prev => ({...prev, hasAttachments: !!checked}))}
+                />
+                <Label htmlFor="has-attachments">Has Attachments</Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="has-comments"
+                  checked={filters.hasComments}
+                  onCheckedChange={(checked) => setFilters(prev => ({...prev, hasComments: !!checked}))}
+                />
+                <Label htmlFor="has-comments">Has Comments</Label>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <Button onClick={handleFilterUpdate}>
+              <Search className="h-4 w-4 mr-2" />
+              Update
+            </Button>
+            <Button variant="outline" onClick={handleClearFilters}>
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Clear Filters
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Reports List */}
+      <div className="space-y-4">
+        {reports.length === 0 ? (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <p className="text-gray-500">No shift reports found matching your criteria.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          reports?.map((report) => (
+            <ReportPreview
+              key={report.id}
+              report={report}
+              user={user}
+              expanded={expandedReport === report.id}
+              onToggleExpand={() => setExpandedReport(
+                expandedReport === report.id ? null : report.id
+              )}
+            />
+          ))
+        )}
+      </div>
+
+      {/* Load More Button */}
+      {hasMore && (
+        <div className="text-center">
+          <Button 
+            variant="outline" 
+            onClick={() => loadReports(false)}
+            disabled={loadingMore}
+          >
+            {loadingMore ? 'Loading...' : 'See More'}
+          </Button>
+        </div>
+      )}
+    </div>
+  )
+}

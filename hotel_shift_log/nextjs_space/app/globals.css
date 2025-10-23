@@ -1,0 +1,217 @@
+/* Import Google fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+ 
+@layer base {
+  :root {
+    /* Champions Club color palette */
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+
+    --card: 0 0% 5%;
+    --card-foreground: 0 0% 100%;
+ 
+    --popover: 0 0% 5%;
+    --popover-foreground: 0 0% 100%;
+ 
+    /* Champions Club Gold */
+    --primary: 42 65% 56%;
+    --primary-foreground: 0 0% 0%;
+ 
+    /* Secondary accent */
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 100%;
+ 
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 65%;
+ 
+    /* Gold accent for highlights */
+    --accent: 42 65% 56%;
+    --accent-foreground: 0 0% 0%;
+ 
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 20%;
+    --input: 0 0% 10%;
+    --ring: 42 65% 56%;
+ 
+    --radius: 0rem;
+  }
+ 
+  .dark {
+    /* Dark theme - same as default for Champions Club */
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+ 
+    --card: 0 0% 5%;
+    --card-foreground: 0 0% 100%;
+ 
+    --popover: 0 0% 5%;
+    --popover-foreground: 0 0% 100%;
+ 
+    --primary: 42 65% 56%;
+    --primary-foreground: 0 0% 0%;
+ 
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 100%;
+ 
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 65%;
+ 
+    --accent: 42 65% 56%;
+    --accent-foreground: 0 0% 0%;
+ 
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 100%;
+ 
+    --border: 0 0% 20%;
+    --input: 0 0% 10%;
+    --ring: 42 65% 56%;
+  }
+}
+ 
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  /* Typography */
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0a0a0a;
+    min-height: 100vh;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+  }
+  
+  /* Subtle texture overlay */
+  body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    opacity: 0.02;
+    z-index: 0;
+    background-image: 
+      radial-gradient(circle at 20% 30%, rgba(200, 168, 89, 0.08) 0%, transparent 50%),
+      radial-gradient(circle at 80% 70%, rgba(200, 168, 89, 0.08) 0%, transparent 50%);
+  }
+}
+
+/* Button Styles - Unified for all buttons */
+@keyframes gold-fill {
+  from { background-position: 0% 50%; }
+  to { background-position: 100% 50%; }
+}
+
+/* Base button style - white text, gold outline, fill on hover */
+.btn-champions,
+.btn-champions-secondary {
+  position: relative;
+  background: transparent;
+  border: 1px solid #A88F4A;
+  color: white !important;
+  border-radius: 0;
+  padding: 0.75rem 2rem;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  font-size: 0.875rem;
+  transition: all 0.4s ease;
+  overflow: hidden;
+}
+
+.btn-champions::before,
+.btn-champions-secondary::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0%;
+  height: 100%;
+  background: #A88F4A;
+  transition: width 0.4s ease;
+  z-index: -1;
+}
+
+.btn-champions:hover::before,
+.btn-champions-secondary:hover::before {
+  width: 100%;
+}
+
+.btn-champions:hover,
+.btn-champions-secondary:hover {
+  color: white !important;
+  border-color: #A88F4A;
+}
+
+/* Ensure icons inside buttons are white too */
+.btn-champions svg,
+.btn-champions-secondary svg {
+  color: white !important;
+}
+
+/* Always-filled button variant (for expanded report view) */
+.btn-champions-filled {
+  position: relative;
+  background: #A88F4A;
+  border: 1px solid #A88F4A;
+  color: white !important;
+  border-radius: 0;
+  padding: 0.75rem 2rem;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  font-size: 0.875rem;
+  transition: all 0.3s ease;
+}
+
+.btn-champions-filled:hover {
+  background: #8f7a3e;
+  border-color: #8f7a3e;
+  color: white !important;
+}
+
+.btn-champions-filled svg {
+  color: white !important;
+}
+
+/* Card styling */
+.casino-card {
+  background: rgba(10, 10, 10, 0.8);
+  border: 1px solid rgba(168, 143, 74, 0.2);
+  border-radius: 0;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(200, 168, 89, 0.4);
+  border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(200, 168, 89, 0.6);
+}

@@ -1,0 +1,3 @@
+add #!/bin/bash to top of setup system sh file in scripts
+
+source venv/bin/activate

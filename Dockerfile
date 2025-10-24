@@ -44,9 +44,13 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/scripts/startup.sh ./scripts/startup.sh
 
 # Create uploads directory (will be mounted to GCS in production)
 RUN mkdir -p /app/uploads && chown nextjs:nodejs /app/uploads
+
+# Make startup script executable
+RUN chmod +x ./scripts/startup.sh
 
 USER nextjs
 
@@ -55,4 +59,4 @@ EXPOSE 8080
 ENV PORT 8080
 ENV HOSTNAME "0.0.0.0"
 
-CMD ["node", "server.js"]
+CMD ["./scripts/startup.sh"]

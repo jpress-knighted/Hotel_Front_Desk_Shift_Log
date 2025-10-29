@@ -42,17 +42,8 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
-
-# Copy Prisma-related files for migrations
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 COPY --from=builder /app/prisma ./prisma
-
-# Create .bin directory and set up prisma symlink
-RUN mkdir -p ./node_modules/.bin && \
-    ln -s ../prisma/build/index.js ./node_modules/.bin/prisma
-
 COPY --from=builder /app/scripts/startup.sh ./scripts/startup.sh
 
 # Create uploads directory (will be mounted to GCS in production)

@@ -25,7 +25,7 @@ RUN npx prisma generate
 
 # Build Next.js with standalone output
 ENV NEXT_TELEMETRY_DISABLED 1
-ENV DOCKER_BUILD 1
+ENV NEXT_OUTPUT_MODE standalone
 RUN yarn build
 
 # Production image

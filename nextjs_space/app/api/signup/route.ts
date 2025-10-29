@@ -3,8 +3,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import bcrypt from 'bcryptjs'
 import { UserRole } from '@prisma/client'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,29 +13,6 @@ export async function POST(request: NextRequest) {
         { error: 'Username, password, and name are required' },
         { status: 400 }
       )
-    }
-
-    // Check if any users exist in the system
-    const userCount = await prisma.user.count()
-    
-    // If users exist, require authentication
-    if (userCount > 0) {
-      const session = await getServerSession(authOptions)
-      
-      if (!session?.user) {
-        return NextResponse.json(
-          { error: 'Authentication required' },
-          { status: 401 }
-        )
-      }
-
-      // Only SUPER_ADMIN can create new users after initial setup
-      if (session.user.role !== 'SUPER_ADMIN') {
-        return NextResponse.json(
-          { error: 'Only super admins can create new users' },
-          { status: 403 }
-        )
-      }
     }
 
     // Check if user already exists

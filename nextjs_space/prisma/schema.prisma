@@ -1,7 +1,8 @@
 generator client {
     provider = "prisma-client-js"
     binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
-    output = "/home/ubuntu/hotel_shift_log/nextjs_space/node_modules/.prisma/client"
+    // Note: output path intentionally omitted to use default location
+    // This ensures compatibility with Docker builds where paths differ
 }
 
 datasource db {

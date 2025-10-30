@@ -1,0 +1,18 @@
+{
+  "users": [
+    {
+      "id": "testuser001",
+      "username": "testuser",
+      "email": "testuser@example.com",
+      "password": "$2a$12$k5L0GFS9uwz8Mh5T7y1dnOuiafdnWnFbXkiNFEqvfUnQ3hIq.BRSy",
+      "name": "Test User",
+      "role": "SUPER_ADMIN",
+      "emailVerified": null,
+      "image": null,
+      "isArchived": false,
+      "receivesHighPriorityEmails": false,
+      "createdAt": "2025-10-30T20:00:00.000Z",
+      "updatedAt": "2025-10-30T20:00:00.000Z"
+    }
+  ]
+}

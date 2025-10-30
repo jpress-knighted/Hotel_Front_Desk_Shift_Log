@@ -1,4 +1,3 @@
-
 /**
  * Import data to Google Cloud SQL PostgreSQL database
  * This script reads the exported data and imports it into Cloud SQL
@@ -8,14 +7,18 @@ const { Client } = require('pg');
 const fs = require('fs').promises;
 const path = require('path');
 
-// Cloud SQL Database connection (for direct connection - use when testing locally)
-const CLOUD_SQL_URL = 'postgresql://hotel-shift-log-db:ebf4vem5mzx8yuy*FJE@34.133.148.252:5432/hotelshiftlog';
-
-const IMPORT_FILE = path.join(__dirname, 'abacusai_data_export.json');
+const IMPORT_FILE = path.join(__dirname, 'test_user.json');
 
 async function importData() {
   const client = new Client({
-    connectionString: CLOUD_SQL_URL,
+    user: 'hotelapp',
+password: 'R\\,H~(NC6aI$D=,K',
+    host: '34.133.148.252',
+    port: 5432,
+    database: 'hotelshiftlog',
+    ssl: {
+      rejectUnauthorized: false,
+    },
   });
 
   try {
@@ -29,16 +32,7 @@ async function importData() {
 
     // Import tables in dependency order
     const tables = [
-      'users',
-      'shift_reports',
-      'attachments',
-      'comments',
-      'comment_likes',
-      'daily_post_trackers',
-      'report_acknowledgements',
-      'accounts',
-      'sessions',
-      'verification_tokens'
+      'users'
     ];
 
     let totalImported = 0;

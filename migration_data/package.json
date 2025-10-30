@@ -1,0 +1,14 @@
+
+{
+  "name": "hotel-shift-log-migration",
+  "version": "1.0.0",
+  "description": "Migration scripts for Hotel Shift Log from Abacus.AI to Google Cloud SQL",
+  "scripts": {
+    "export": "node export_from_abacusai.js",
+    "import": "node import_to_cloudsql.js",
+    "test": "node test_cloudsql_connection.js"
+  },
+  "dependencies": {
+    "pg": "^8.11.3"
+  }
+}

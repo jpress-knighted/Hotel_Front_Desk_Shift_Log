@@ -1,0 +1,58 @@
+[
+  {
+    "id": "cmh11shuf0000wugxio6nclh8",
+    "username": "deleted_user_system",
+    "email": null,
+    "password": "$2a$12$kUHajlWx2CNuCa6u1p2bZeGD.o9A1HWF2i028kuS9Wqgv2TjeWf8m",
+    "name": "[Deleted User]",
+    "role": "EMPLOYEE",
+    "emailVerified": null,
+    "image": null,
+    "createdAt": "2025-10-21T20:59:45.111Z",
+    "updatedAt": "2025-10-21T21:01:21.663Z",
+    "isArchived": true,
+    "receivesHighPriorityEmails": false
+  },
+  {
+    "id": "cmh0wysrt0000nkygf9rv57k2",
+    "username": "staff",
+    "email": null,
+    "password": "$2a$12$EyUMvy9b.bg27KQPxAPQ9evw.Qs4J4nfsfjpH10cskIHHgnC/4cWG",
+    "name": "FrontDesk Person",
+    "role": "EMPLOYEE",
+    "emailVerified": null,
+    "image": null,
+    "createdAt": "2025-10-21T18:44:41.129Z",
+    "updatedAt": "2025-10-21T20:50:18.677Z",
+    "isArchived": false,
+    "receivesHighPriorityEmails": false
+  },
+  {
+    "id": "cmh11i3ns0000wudoo3i32uol",
+    "username": "jpress",
+    "email": null,
+    "password": "$2a$12$k5L0GFS9uwz8Mh5T7y1dnOuiafdnWnFbXkiNFEqvfUnQ3hIq.BRSy",
+    "name": "Jared Press",
+    "role": "SUPER_ADMIN",
+    "emailVerified": null,
+    "image": null,
+    "createdAt": "2025-10-21T20:51:40.169Z",
+    "updatedAt": "2025-10-21T20:51:40.169Z",
+    "isArchived": false,
+    "receivesHighPriorityEmails": false
+  },
+  {
+    "id": "cmgl4m0xd0000vcdti9h37ub7",
+    "username": "mlopez",
+    "email": null,
+    "password": "$2a$12$moymS1sQ1uOoDl7UY5rUSOOeFvuM6tUVMG6SzBPoikLAKPhUSCXZW",
+    "name": "Miranda Lopez",
+    "role": "MANAGER",
+    "emailVerified": null,
+    "image": null,
+    "createdAt": "2025-10-10T17:34:23.282Z",
+    "updatedAt": "2025-10-21T21:47:58.993Z",
+    "isArchived": false,
+    "receivesHighPriorityEmails": false
+  }
+]
